@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DeleteProjectButton } from "./delete-button"
+import { MoveProjectButton } from "./move-button"
 import { Plus } from "lucide-react"
 
 export default async function ProjectsPage() {
@@ -40,13 +41,17 @@ export default async function ProjectsPage() {
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            projects.map((project) => (
+                            projects.map((project, index) => (
                                 <TableRow key={project.id}>
                                     <TableCell className="font-medium">{project.title}</TableCell>
                                     <TableCell>{project.featured ? "Yes" : "No"}</TableCell>
                                     <TableCell className="truncate max-w-[200px]">{project.techStack}</TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-2">
+                                            <div className="flex gap-1 mr-2">
+                                                <MoveProjectButton id={project.id} direction="up" />
+                                                <MoveProjectButton id={project.id} direction="down" />
+                                            </div>
                                             <Button variant="outline" size="sm" asChild>
                                                 <Link href={`/admin/dashboard/projects/${project.id}`}>Edit</Link>
                                             </Button>

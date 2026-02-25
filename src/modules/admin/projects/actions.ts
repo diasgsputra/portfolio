@@ -53,3 +53,32 @@ export async function deleteProject(id: string) {
     revalidatePath("/admin/dashboard/projects")
     return { success: true }
 }
+
+export async function moveProject(id: string, direction: "up" | "down") {
+    const session = await auth()
+    if (!session) throw new Error("Unauthorized")
+
+    // Get all projects sorted by current order
+    const projects = await db.project.findMany({
+        orderBy: { createdAt: "desc" }
+    })
+
+    const currentIndex = projects.findIndex(p => p.id === id)
+    if (currentIndex === -1) return { success: false }
+
+    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1
+    if (targetIndex < 0 || targetIndex >= projects.length) return { success: false }
+
+    const currentProject = projects[currentIndex]
+    const targetProject = projects[targetIndex]
+
+    // Swap createdAt values to reorder
+    await db.$transaction([
+        db.project.update({ where: { id: currentProject.id }, data: { createdAt: targetProject.createdAt } }),
+        db.project.update({ where: { id: targetProject.id }, data: { createdAt: currentProject.createdAt } })
+    ])
+
+    revalidatePath("/")
+    revalidatePath("/admin/dashboard/projects")
+    return { success: true }
+}
