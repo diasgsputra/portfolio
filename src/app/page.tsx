@@ -1,298 +1,438 @@
 import { db } from "@/lib/db"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Github, Linkedin, ExternalLink, Mail, ArrowRight, Code2, Terminal, Briefcase, Layout, Database } from "lucide-react"
+import { Github, Linkedin, Mail, ArrowRight, ArrowUpRight, Code2, Database, Palette, Server, ChevronUp } from "lucide-react"
 import { AnimatedSection } from "@/components/animated-section"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { ProjectCarousel } from "@/components/project-carousel"
+import { SiteHeader } from "@/components/site-header"
+import { HeroSection } from "@/components/hero-section"
+import { ExperienceTimeline } from "@/components/experience-timeline"
+import { ScrollProgress } from "@/components/scroll-progress"
+import { MagneticButton } from "@/components/magnetic-button"
 
 export default async function Home() {
-  const [profile, projects, experiences] = await Promise.all([
+  const [profile, projects, allProjects, experiences] = await Promise.all([
     db.profile.findFirst(),
     db.project.findMany({
       where: { featured: true },
       orderBy: { createdAt: "desc" }
     }),
+    db.project.findMany(),
     db.experience.findMany({
       orderBy: { startDate: "desc" }
     })
   ])
 
+  // Extract all techs from projects and count frequency
+  const techCount = new Map<string, number>()
+  allProjects.forEach((p) => {
+    p.techStack.split(",").map((t) => t.trim()).filter(Boolean).forEach((tech) => {
+      techCount.set(tech, (techCount.get(tech) || 0) + 1)
+    })
+  })
+
+  // Sort by frequency (most used first)
+  const allTechs = Array.from(techCount.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([tech]) => tech)
+
+  // Auto-categorize techs from project data
+  const frontendKeywords = ["react", "reactjs", "vue", "vuejs", "next", "nextjs", "angular", "svelte", "html", "css", "tailwind", "bootstrap", "livewire", "blade", "jsx", "tsx", "frontend"]
+  const backendKeywords = ["node", "nodejs", "express", "expressjs", "laravel", "php", "java", "springboot", "spring", "django", "python", "ruby", "rails", "go", "golang", "nest", "nestjs", "fastapi", "dotnet", "asp", "backend", "websocket", "api", "rest", "graphql", "payment"]
+  const dbKeywords = ["postgres", "postgresql", "mysql", "mongodb", "redis", "sqlite", "prisma", "supabase", "firebase", "dynamodb", "database", "sql", "mariadb"]
+  const devopsKeywords = ["docker", "kubernetes", "aws", "gcp", "azure", "vercel", "nginx", "ci", "cd", "git", "github", "linux", "devops", "deploy"]
+
+  function categorizeTech(tech: string) {
+    const lower = tech.toLowerCase()
+    if (frontendKeywords.some((k) => lower.includes(k))) return "frontend"
+    if (backendKeywords.some((k) => lower.includes(k))) return "backend"
+    if (dbKeywords.some((k) => lower.includes(k))) return "database"
+    if (devopsKeywords.some((k) => lower.includes(k))) return "devops"
+    return "other"
+  }
+
+  const categorized = {
+    frontend: allTechs.filter((t) => categorizeTech(t) === "frontend"),
+    backend: allTechs.filter((t) => categorizeTech(t) === "backend"),
+    database: allTechs.filter((t) => categorizeTech(t) === "database"),
+    devops: allTechs.filter((t) => categorizeTech(t) === "devops" || categorizeTech(t) === "other"),
+  }
+
+  const skills = [
+    ...(categorized.frontend.length > 0
+      ? [{ icon: Code2, title: "Frontend", description: "Building beautiful, responsive interfaces", techs: categorized.frontend }]
+      : []),
+    ...(categorized.backend.length > 0
+      ? [{ icon: Server, title: "Backend", description: "Scalable APIs and server architecture", techs: categorized.backend }]
+      : []),
+    ...(categorized.database.length > 0
+      ? [{ icon: Database, title: "Database", description: "Data modeling and optimization", techs: categorized.database }]
+      : []),
+    ...(categorized.devops.length > 0
+      ? [{ icon: Palette, title: "DevOps & Tools", description: "Deployment and tooling", techs: categorized.devops }]
+      : []),
+  ]
+
+  // Top 5 techs for hero floating pills
+  const topTechs = allTechs.slice(0, 5)
+
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground overflow-hidden">
-      {/* Background Decorative Blur Orbs */}
-      <div className="fixed inset-0 z-[-1] pointer-events-none">
-        <div className="absolute top-[10%] left-[10%] w-[50vw] h-[50vw] max-w-[800px] max-h-[800px] rounded-full bg-indigo-500/10 dark:bg-indigo-500/10 blur-[100px] md:blur-[180px] opacity-70 mix-blend-screen" />
-        <div className="absolute bottom-[10%] right-[10%] w-[40vw] h-[40vw] max-w-[600px] max-h-[600px] rounded-full bg-purple-500/10 dark:bg-purple-500/10 blur-[100px] md:blur-[180px] opacity-70 mix-blend-screen" />
-        <div className="absolute top-[40%] left-[50%] -translate-x-1/2 w-[60vw] h-[30vw] rounded-full bg-blue-500/5 dark:bg-blue-500/5 blur-[120px] opacity-50 mix-blend-screen" />
-        {/* Subtle grid pattern overlay */}
-        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] dark:[mask-image:linear-gradient(180deg,black,rgba(0,0,0,0))] opacity-20 dark:opacity-10" />
+    <div className="flex flex-col min-h-screen bg-background text-foreground">
+      {/* Light mode ambient gradient background */}
+      <div className="fixed inset-0 z-[-1] pointer-events-none dark:hidden">
+        <div className="absolute top-0 left-0 w-full h-full bg-[linear-gradient(135deg,oklch(0.96_0.025_265)_0%,oklch(0.98_0.01_290)_30%,oklch(0.97_0.015_240)_60%,oklch(0.98_0.012_280)_100%)]" />
+        <div className="absolute top-[5%] right-[10%] w-[600px] h-[600px] rounded-full bg-indigo-400/[0.07] blur-[120px]" />
+        <div className="absolute bottom-[20%] left-[5%] w-[500px] h-[500px] rounded-full bg-purple-400/[0.06] blur-[100px]" />
+        <div className="absolute top-[50%] left-[40%] w-[400px] h-[400px] rounded-full bg-blue-400/[0.05] blur-[100px]" />
       </div>
 
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-foreground/5 dark:border-white/5 bg-background/60 dark:bg-background/40 backdrop-blur-xl supports-[backdrop-filter]:bg-background/40">
-        <div className="container mx-auto px-4 h-[72px] flex items-center justify-between">
-          <Link href="/" className="font-bold text-xl flex items-center gap-2 group">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform duration-300">
-              <Terminal className="h-4 w-4 text-white" />
-            </div>
-            <span className="bg-gradient-to-r from-foreground/80 to-foreground text-transparent bg-clip-text dark:from-white dark:to-white/70">
-              {profile?.name ? profile.name.split(' ')[0] : "Portfolio"}
-            </span>
-          </Link>
-          <nav className="hidden md:flex gap-8 text-sm font-medium">
-            <Link href="#about" className="text-foreground/70 hover:text-foreground dark:text-white/70 dark:hover:text-white transition-colors relative group">
-              About
-              <span className="absolute -bottom-1 left-0 w-0 h-px bg-indigo-500 group-hover:w-full transition-all duration-300"></span>
-            </Link>
-            <Link href="#projects" className="text-foreground/70 hover:text-foreground dark:text-white/70 dark:hover:text-white transition-colors relative group">
-              Projects
-              <span className="absolute -bottom-1 left-0 w-0 h-px bg-indigo-500 group-hover:w-full transition-all duration-300"></span>
-            </Link>
-            <Link href="#experience" className="text-foreground/70 hover:text-foreground dark:text-white/70 dark:hover:text-white transition-colors relative group">
-              Experience
-              <span className="absolute -bottom-1 left-0 w-0 h-px bg-indigo-500 group-hover:w-full transition-all duration-300"></span>
-            </Link>
-          </nav>
-          <div className="flex items-center gap-2 md:gap-4">
-            <ThemeToggle />
-            <Button asChild variant="outline" className="hidden md:inline-flex rounded-full border-foreground/10 hover:bg-foreground/5 dark:border-white/10 dark:hover:bg-white/5 backdrop-blur-sm">
-              <Link href="#contact">Contact Me</Link>
-            </Button>
-            <Button asChild className="md:hidden rounded-full bg-indigo-600 hover:bg-indigo-700 text-white">
-              <Link href="#contact">Contact</Link>
-            </Button>
-          </div>
-        </div>
-      </header>
+      <ScrollProgress />
+      <SiteHeader name={profile?.name} />
 
       <main className="flex-1">
-        {/* Hero Section */}
-        <AnimatedSection className="container mx-auto px-4 pt-32 pb-24 md:pt-48 md:pb-32 flex flex-col items-center text-center relative">
-          {profile?.avatarUrl && (
-            <div className="relative w-32 h-32 md:w-40 md:h-40 mx-auto mb-10 rounded-full z-10 group">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 opacity-40 blur-xl group-hover:opacity-70 transition-opacity duration-500"></div>
-              <img src={profile.avatarUrl} alt={profile.name || "Avatar"} className="relative w-full h-full object-cover rounded-full border-2 border-background dark:border-white/10 group-hover:scale-[1.02] transition-transform duration-500 bg-zinc-100 dark:bg-zinc-900" />
-            </div>
-          )}
-
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 mb-8 backdrop-blur-md">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-            </span>
-            <span className="text-xs font-medium text-indigo-700 dark:text-indigo-200">Available for Opportunities</span>
-          </div>
-
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tighter mb-6 relative z-10 w-full max-w-5xl">
-            <span className="block text-foreground/90 dark:text-white/90 mb-2 md:mb-4">Hello, I'm</span>
-            <span className="bg-gradient-to-r from-indigo-500 via-purple-500 to-blue-500 dark:from-indigo-400 dark:via-purple-500 dark:to-blue-500 bg-clip-text text-transparent px-2">
-              {profile?.name || "a Developer"}
-            </span>
-          </h1>
-
-          <p className="text-xl md:text-2xl text-foreground/60 dark:text-white/60 mb-10 max-w-[700px] leading-relaxed relative z-10 font-light">
-            {profile?.title || "Crafting digital experiences with modern web technologies, focusing on beautiful and functional design."}
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 relative z-50">
-            <Button asChild size="lg" className="rounded-full h-14 px-8 bg-foreground text-background hover:bg-foreground/90 dark:bg-white dark:text-black dark:hover:bg-white/90 hover:scale-105 transition-all duration-300 dark:shadow-[0_0_40px_rgba(255,255,255,0.2)]">
-              <Link href="#projects">
-                View My Work
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="lg" className="rounded-full h-14 px-8 border-foreground/10 bg-foreground/5 dark:border-white/10 dark:bg-white/5 backdrop-blur-md hover:bg-foreground/10 dark:hover:bg-white/10 transition-all duration-300">
-              <Link href="#contact">Contact Me</Link>
-            </Button>
-          </div>
-        </AnimatedSection>
+        {/* Hero */}
+        <HeroSection
+          name={profile?.name}
+          title={profile?.title}
+          avatarUrl={profile?.avatarUrl}
+          techs={topTechs}
+        />
 
         {/* About Section */}
-        <AnimatedSection id="about" className="py-24 md:py-32 relative border-t border-foreground/5 dark:border-white/5" delay={0.1}>
-          <div className="container mx-auto px-4 max-w-6xl">
-            <div className="grid md:grid-cols-2 gap-12 items-center">
+        <AnimatedSection
+          id="about"
+          className="py-28 md:py-40 relative bg-gradient-to-b from-transparent via-indigo-50/50 to-transparent dark:via-transparent"
+          variant="blur-in"
+        >
+          <div className="container mx-auto px-6 max-w-6xl">
+            {/* Section Header */}
+            <div className="mb-16 md:mb-20">
+              <span className="text-[11px] font-mono font-medium uppercase tracking-[0.2em] text-brand mb-4 block">
+                About Me
+              </span>
+              <h2 className="font-display text-4xl md:text-6xl font-bold tracking-[-0.03em] text-foreground dark:text-white max-w-3xl">
+                Passionate about crafting{" "}
+                <span className="text-gradient bg-gradient-to-r from-brand to-purple-500">
+                  digital experiences
+                </span>
+              </h2>
+            </div>
+
+            <div className="grid lg:grid-cols-[1.2fr_1fr] gap-16 items-start">
+              {/* Bio */}
               <div>
-                <h2 className="text-sm font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-3 text-left">About Me</h2>
-                <h3 className="text-3xl md:text-4xl font-bold mb-6 text-foreground dark:text-white text-left">Dedicated to building exceptional digital products.</h3>
-                <div className="prose prose-lg dark:prose-invert text-foreground/70 dark:text-white/70 leading-relaxed text-left">
-                  {profile?.bio?.split('\n').map((paragraph, index) => (
-                    <p key={index}>{paragraph}</p>
-                  )) || <p>No bio available yet. I am passionate about building fullstack applications that solve real-world problems.</p>}
+                <div className="text-lg text-foreground/55 dark:text-white/55 leading-relaxed space-y-4 mb-12">
+                  {profile?.bio?.split("\n").map((paragraph, index) => (
+                    <p key={index} className={index === 0 ? "text-xl text-foreground/70 dark:text-white/70" : ""}>
+                      {paragraph}
+                    </p>
+                  )) || (
+                    <p className="text-xl text-foreground/70 dark:text-white/70">
+                      I am passionate about building fullstack applications that solve
+                      real-world problems. With a keen eye for detail and a love for
+                      clean code, I create digital experiences that are both functional
+                      and delightful.
+                    </p>
+                  )}
                 </div>
 
-                <div className="mt-8 grid grid-cols-2 gap-4">
-                  <div className="p-4 rounded-xl bg-foreground/5 dark:bg-white/5 border border-foreground/5 dark:border-white/5 backdrop-blur-sm">
-                    <Code2 className="h-6 w-6 text-indigo-500 dark:text-indigo-400 mb-3" />
-                    <h4 className="font-semibold text-foreground dark:text-white mb-1">Frontend</h4>
-                    <p className="text-sm text-foreground/50 dark:text-white/50">React, Next.js, UI/UX</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-foreground/5 dark:bg-white/5 border border-foreground/5 dark:border-white/5 backdrop-blur-sm">
-                    <Database className="h-6 w-6 text-purple-500 dark:text-purple-400 mb-3" />
-                    <h4 className="font-semibold text-foreground dark:text-white mb-1">Backend</h4>
-                    <p className="text-sm text-foreground/50 dark:text-white/50">Node.js, SQL, APIs</p>
-                  </div>
+                {/* Social Links */}
+                <div className="flex gap-3">
+                  {profile?.githubUrl && (
+                    <Link
+                      href={profile.githubUrl}
+                      target="_blank"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full glass-card glass-card-hover text-sm font-medium text-foreground/60 dark:text-white/60 hover:text-foreground dark:hover:text-white"
+                    >
+                      <Github className="h-4 w-4" /> GitHub
+                    </Link>
+                  )}
+                  {profile?.linkedinUrl && (
+                    <Link
+                      href={profile.linkedinUrl}
+                      target="_blank"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full glass-card glass-card-hover text-sm font-medium text-foreground/60 dark:text-white/60 hover:text-foreground dark:hover:text-white"
+                    >
+                      <Linkedin className="h-4 w-4" /> LinkedIn
+                    </Link>
+                  )}
                 </div>
               </div>
-              <div className="relative h-[500px] w-full rounded-2xl overflow-hidden border border-foreground/10 dark:border-white/10 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 dark:from-indigo-500/10 dark:to-purple-500/10 backdrop-blur-md flex items-center justify-center p-8">
-                {/* Abstract decorative element for about section */}
-                <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-10"></div>
-                <div className="relative z-10 bg-background/80 backdrop-blur-xl border border-foreground/10 dark:border-white/10 rounded-xl p-6 w-full shadow-2xl">
-                  <div className="flex items-center gap-2 mb-4 border-b border-foreground/10 dark:border-white/10 pb-4">
-                    <div className="h-3 w-3 rounded-full bg-red-500/80"></div>
-                    <div className="h-3 w-3 rounded-full bg-yellow-500/80"></div>
-                    <div className="h-3 w-3 rounded-full bg-green-500/80"></div>
+
+              {/* Terminal Code Block */}
+              <AnimatedSection as="div" variant="fade-right" delay={0.2} className="relative">
+                <div className="glass-card rounded-2xl overflow-hidden">
+                  {/* Terminal Chrome */}
+                  <div className="flex items-center gap-2 px-5 py-3.5 border-b border-foreground/[0.04] dark:border-white/[0.04]">
+                    <div className="flex gap-1.5">
+                      <div className="h-2.5 w-2.5 rounded-full bg-red-400/60" />
+                      <div className="h-2.5 w-2.5 rounded-full bg-yellow-400/60" />
+                      <div className="h-2.5 w-2.5 rounded-full bg-green-400/60" />
+                    </div>
+                    <span className="ml-3 text-[11px] font-mono text-foreground/30 dark:text-white/30">
+                      ~/about-me
+                    </span>
                   </div>
-                  <pre className="text-sm font-mono text-indigo-700 dark:text-indigo-300 overflow-x-auto">
+                  <pre className="p-6 text-[13px] font-mono leading-relaxed overflow-x-auto">
                     <code>
-                      {`const engineer = {
-  name: "${profile?.name?.split(' ')[0] || 'Dev'}",
-  passion: "Building Apps",
-  skills: [
-    "TypeScript",
-    "React / Next.js",
-    "Tailwind CSS",
-    "Node.js",
-    "PostgreSQL"
-  ],
-  status: "Turning ideas into code"
-};`}
+                      <span className="text-brand/60">const</span>{" "}
+                      <span className="text-foreground/70 dark:text-white/70">developer</span>{" "}
+                      <span className="text-brand/60">=</span>{" "}
+                      <span className="text-foreground/40 dark:text-white/40">{"{"}</span>
+                      {"\n"}
+                      {"  "}
+                      <span className="text-purple-500/70 dark:text-purple-400/70">name</span>
+                      <span className="text-foreground/30 dark:text-white/30">:</span>{" "}
+                      <span className="text-emerald-600/80 dark:text-emerald-400/70">
+                        "{profile?.name?.split(" ")[0] || "Dev"}"
+                      </span>
+                      <span className="text-foreground/30 dark:text-white/30">,</span>
+                      {"\n"}
+                      {"  "}
+                      <span className="text-purple-500/70 dark:text-purple-400/70">passion</span>
+                      <span className="text-foreground/30 dark:text-white/30">:</span>{" "}
+                      <span className="text-emerald-600/80 dark:text-emerald-400/70">
+                        "Building Apps"
+                      </span>
+                      <span className="text-foreground/30 dark:text-white/30">,</span>
+                      {"\n"}
+                      {"  "}
+                      <span className="text-purple-500/70 dark:text-purple-400/70">skills</span>
+                      <span className="text-foreground/30 dark:text-white/30">:</span>{" "}
+                      <span className="text-foreground/40 dark:text-white/40">[</span>
+                      {"\n"}
+                      {"    "}
+                      <span className="text-emerald-600/80 dark:text-emerald-400/70">"TypeScript"</span>
+                      <span className="text-foreground/30 dark:text-white/30">,</span>
+                      {"\n"}
+                      {"    "}
+                      <span className="text-emerald-600/80 dark:text-emerald-400/70">"React / Next.js"</span>
+                      <span className="text-foreground/30 dark:text-white/30">,</span>
+                      {"\n"}
+                      {"    "}
+                      <span className="text-emerald-600/80 dark:text-emerald-400/70">"Tailwind CSS"</span>
+                      <span className="text-foreground/30 dark:text-white/30">,</span>
+                      {"\n"}
+                      {"    "}
+                      <span className="text-emerald-600/80 dark:text-emerald-400/70">"Node.js"</span>
+                      <span className="text-foreground/30 dark:text-white/30">,</span>
+                      {"\n"}
+                      {"    "}
+                      <span className="text-emerald-600/80 dark:text-emerald-400/70">"PostgreSQL"</span>
+                      {"\n"}
+                      {"  "}
+                      <span className="text-foreground/40 dark:text-white/40">]</span>
+                      <span className="text-foreground/30 dark:text-white/30">,</span>
+                      {"\n"}
+                      {"  "}
+                      <span className="text-purple-500/70 dark:text-purple-400/70">status</span>
+                      <span className="text-foreground/30 dark:text-white/30">:</span>{" "}
+                      <span className="text-emerald-600/80 dark:text-emerald-400/70">
+                        "Turning ideas into code"
+                      </span>
+                      {"\n"}
+                      <span className="text-foreground/40 dark:text-white/40">{"}"}</span>
+                      <span className="text-foreground/30 dark:text-white/30">;</span>
                     </code>
                   </pre>
                 </div>
-              </div>
+              </AnimatedSection>
+            </div>
+
+            {/* Skill Bento Grid */}
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-16 md:mt-20">
+              {skills.map((skill, i) => (
+                <AnimatedSection
+                  key={skill.title}
+                  as="div"
+                  variant="fade-up"
+                  delay={0.1 + i * 0.08}
+                >
+                  <div className="group glass-card glass-card-hover rounded-2xl p-6 h-full">
+                    <div className="w-10 h-10 rounded-xl bg-brand/[0.08] flex items-center justify-center mb-4 group-hover:bg-brand/[0.14] transition-colors duration-500">
+                      <skill.icon className="h-5 w-5 text-brand" />
+                    </div>
+                    <h4 className="font-display font-semibold text-foreground dark:text-white mb-1.5">
+                      {skill.title}
+                    </h4>
+                    <p className="text-sm text-foreground/40 dark:text-white/40 mb-4">
+                      {skill.description}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {skill.techs.map((tech) => (
+                        <span
+                          key={tech}
+                          className="text-[11px] font-mono px-2 py-1 rounded-md bg-foreground/[0.03] dark:bg-white/[0.04] text-foreground/45 dark:text-white/45"
+                        >
+                          {tech}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </AnimatedSection>
+              ))}
             </div>
           </div>
         </AnimatedSection>
 
         {/* Featured Projects */}
-        <AnimatedSection id="projects" className="py-24 md:py-32 relative border-t border-foreground/5 dark:border-white/5 bg-foreground/[0.02] dark:bg-zinc-950/50" delay={0.2}>
-          <div className="container mx-auto px-4 max-w-6xl">
-            <div className="flex flex-col items-center mb-16 text-center">
-              <h2 className="text-sm font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-3">Portfolio</h2>
-              <h3 className="text-3xl md:text-5xl font-bold text-foreground dark:text-white">Featured Projects</h3>
-              <p className="mt-4 text-foreground/60 dark:text-white/60 max-w-2xl text-lg">A selection of my recent work, highlighting my skills in full-stack development and UI/UX design.</p>
+        <AnimatedSection
+          id="projects"
+          className="py-28 md:py-40 relative bg-gradient-to-b from-purple-50/40 via-surface/60 to-indigo-50/30 dark:from-transparent dark:via-surface/30 dark:to-transparent"
+          variant="blur-in"
+        >
+          <div className="container mx-auto px-6 max-w-6xl">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-16 md:mb-20">
+              <div>
+                <span className="text-[11px] font-mono font-medium uppercase tracking-[0.2em] text-brand mb-4 block">
+                  Portfolio
+                </span>
+                <h2 className="font-display text-4xl md:text-6xl font-bold tracking-[-0.03em] text-foreground dark:text-white">
+                  Featured Projects
+                </h2>
+                <p className="mt-4 text-foreground/45 dark:text-white/45 max-w-xl text-lg">
+                  A curated selection of my recent work.
+                </p>
+              </div>
             </div>
 
             {projects.length > 0 ? (
-              <div className="relative px-4 sm:px-12 md:px-0">
+              <div className="relative px-0 sm:px-4 md:px-0">
                 <ProjectCarousel projects={projects} />
               </div>
             ) : (
-              <div className="text-center text-foreground/40 dark:text-white/40 border border-foreground/5 dark:border-white/5 border-dashed rounded-2xl bg-foreground/5 dark:bg-white/5 backdrop-blur-sm py-12">
-                <Code2 className="mx-auto h-10 w-10 mb-3 opacity-50" />
-                <p>No featured projects found. Add some from the admin dashboard.</p>
+              <div className="text-center text-foreground/30 dark:text-white/30 border border-dashed border-foreground/[0.06] dark:border-white/[0.06] rounded-2xl py-16">
+                <Code2 className="mx-auto h-8 w-8 mb-3 opacity-40" />
+                <p className="text-sm">No featured projects yet. Add some from the admin dashboard.</p>
               </div>
             )}
           </div>
         </AnimatedSection>
 
         {/* Experience Section */}
-        <AnimatedSection id="experience" className="py-24 md:py-32 relative border-t border-foreground/5 dark:border-white/5" delay={0.2}>
-          <div className="container mx-auto px-4 max-w-4xl">
-            <div className="flex flex-col items-center mb-16 text-center">
-              <h2 className="text-sm font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-3">Career</h2>
-              <h3 className="text-3xl md:text-5xl font-bold text-foreground dark:text-white">Professional Experience</h3>
+        <AnimatedSection
+          id="experience"
+          className="py-28 md:py-40 relative"
+          variant="fade-up"
+        >
+          <div className="container mx-auto px-6 max-w-4xl">
+            <div className="mb-16 md:mb-20">
+              <span className="text-[11px] font-mono font-medium uppercase tracking-[0.2em] text-brand mb-4 block">
+                Career
+              </span>
+              <h2 className="font-display text-4xl md:text-6xl font-bold tracking-[-0.03em] text-foreground dark:text-white">
+                Experience
+              </h2>
             </div>
 
-            <div className="relative">
-              {/* Timeline Line */}
-              <div className="absolute left-[15px] md:left-0 top-2 bottom-2 w-px bg-gradient-to-b from-indigo-500/50 via-purple-500/20 to-transparent" />
-
-              <div className="space-y-12">
-                {experiences.map((exp, index) => (
-                  <div key={exp.id} className="relative pl-12 md:pl-8 group">
-                    {/* Timeline Dot */}
-                    <div className="absolute left-[11px] md:-left-[5px] top-1.5 h-2.5 w-2.5 rounded-full bg-indigo-500 dark:bg-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.5)] dark:shadow-[0_0_15px_rgba(129,140,248,0.8)] ring-4 ring-background transition-transform duration-300 group-hover:scale-150 group-hover:bg-purple-500 dark:group-hover:bg-purple-400 dark:group-hover:shadow-[0_0_20px_rgba(192,132,252,0.8)] group-hover:shadow-[0_0_20px_rgba(168,85,247,0.5)]" />
-
-                    <div className="md:grid md:grid-cols-4 gap-4 items-baseline">
-                      <div className="md:col-span-1 mb-2 md:mb-0">
-                        <div className="text-sm font-mono text-indigo-700 dark:text-indigo-300">
-                          {exp.startDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} —
-                          <br className="hidden md:block" />
-                          {exp.endDate ? ` ${exp.endDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}` : " Present"}
-                        </div>
-                      </div>
-                      <div className="md:col-span-3 bg-background dark:bg-white/5 border border-foreground/10 dark:border-white/10 rounded-2xl p-6 backdrop-blur-sm hover:bg-foreground/5 dark:hover:bg-white/10 transition-colors duration-300 group-hover:border-indigo-500/30">
-                        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                          <h4 className="text-xl font-bold text-foreground dark:text-white">{exp.position}</h4>
-                          <span className="inline-flex items-center rounded-full bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300">
-                            {exp.type}
-                          </span>
-                        </div>
-                        <div className="text-lg text-foreground/70 dark:text-white/70 font-medium mb-4 flex items-center gap-2">
-                          <Briefcase className="h-4 w-4 opacity-70" /> {exp.company}
-                        </div>
-                        <ul className="space-y-2 text-foreground/60 dark:text-white/60 text-sm leading-relaxed">
-                          {exp.description?.split('\n').filter(line => line.trim() !== '').map((line, i) => (
-                            <li key={i} className="flex gap-3">
-                              <span className="text-indigo-500/50 mt-1.5 shrink-0 block h-1.5 w-1.5 rounded-full" />
-                              <span className="flex-1">{line.replace(/^[-•*]\s*/, '').trim()}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {experiences.length === 0 && (
-                  <p className="text-center text-foreground/40 dark:text-white/40 italic">No experience records found.</p>
-                )}
-              </div>
-            </div>
+            <ExperienceTimeline experiences={experiences} />
           </div>
         </AnimatedSection>
 
-        {/* Contact CTA Section */}
-        <AnimatedSection id="contact" className="py-24 md:py-32 relative overflow-hidden" delay={0.3}>
-          {/* Decorative background for CTA */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-indigo-900/10 dark:to-indigo-950/40 pointer-events-none" />
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
+        {/* Contact Section */}
+        <section
+          id="contact"
+          className="py-28 md:py-40 relative overflow-hidden bg-gradient-to-b from-transparent via-indigo-50/30 to-purple-50/20 dark:via-transparent dark:to-transparent"
+        >
+          {/* Background */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-brand/[0.08] dark:bg-brand/[0.04] blur-[150px]" />
+          </div>
 
-          <div className="container mx-auto px-4 max-w-4xl relative z-10 text-center bg-background/50 dark:bg-zinc-900/50 backdrop-blur-xl border border-foreground/10 dark:border-white/10 rounded-3xl p-10 md:p-20 shadow-2xl">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mb-8 rotate-12 hover:rotate-0 transition-transform duration-500 shadow-xl shadow-indigo-500/20">
-              <Mail className="h-8 w-8 text-white" />
+          <AnimatedSection as="div" variant="scale-in" className="container mx-auto px-6 max-w-4xl relative z-10 text-center">
+            <div className="mb-10">
+              <span className="text-[11px] font-mono font-medium uppercase tracking-[0.2em] text-brand mb-6 block">
+                Contact
+              </span>
+              <h2 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold tracking-[-0.04em] text-foreground dark:text-white mb-6">
+                Let's work{" "}
+                <span className="text-gradient bg-gradient-to-r from-brand via-purple-500 to-blue-500 animate-gradient-shift">
+                  together
+                </span>
+              </h2>
+              <p className="text-lg md:text-xl text-foreground/45 dark:text-white/45 max-w-xl mx-auto font-light">
+                I'm always open to discussing new projects, creative ideas, or
+                opportunities to be part of your visions.
+              </p>
             </div>
 
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground dark:text-white">Ready to work together?</h2>
-            <p className="text-xl text-foreground/60 dark:text-white/60 mb-10 max-w-2xl mx-auto font-light">
-              I'm always open to discussing new projects, creative ideas or opportunities to be part of your visions.
-            </p>
-
-            <div className="flex flex-col sm:flex-row justify-center gap-6">
-              <Button asChild size="lg" className="rounded-full h-14 px-10 bg-foreground text-background hover:bg-foreground/90 dark:bg-white dark:text-black dark:hover:bg-white/90 shadow-[0_0_30px_rgba(0,0,0,0.1)] dark:shadow-[0_0_30px_rgba(255,255,255,0.15)] hover:scale-105 transition-all duration-300">
-                <a href="mailto:diasgsputra@gmail.com">
+            {/* CTA */}
+            <div className="flex flex-col items-center gap-8">
+              <MagneticButton href="mailto:diasgsputra@gmail.com">
+                <span className="relative inline-flex items-center gap-3 px-10 py-5 text-base font-semibold rounded-full bg-foreground dark:bg-white text-background dark:text-black hover:opacity-90 transition-all duration-300 group">
                   Say Hello
-                </a>
-              </Button>
+                  <ArrowUpRight className="h-4 w-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
+                </span>
+              </MagneticButton>
 
-              <div className="flex justify-center gap-4 items-center">
-                <Link href={"https://github.com/diasgsputra/"} target="_blank" className="p-4 rounded-full bg-foreground/5 dark:bg-white/5 border border-foreground/10 dark:border-white/10 hover:bg-foreground/10 dark:hover:bg-white/10 hover:border-foreground/20 dark:hover:border-white/20 hover:scale-110 transition-all duration-300 group">
-                  <Github className="h-6 w-6 text-foreground/70 dark:text-white/70 group-hover:text-foreground dark:group-hover:text-white" />
+              {/* Social Links */}
+              <div className="flex items-center gap-4">
+                <Link
+                  href="https://github.com/diasgsputra/"
+                  target="_blank"
+                  className="w-12 h-12 rounded-full flex items-center justify-center border border-foreground/[0.06] dark:border-white/[0.06] text-foreground/40 dark:text-white/40 hover:text-foreground dark:hover:text-white hover:border-foreground/20 dark:hover:border-white/20 hover:scale-110 transition-all duration-300"
+                >
+                  <Github className="h-5 w-5" />
                   <span className="sr-only">GitHub</span>
                 </Link>
-                <Link href={"https://www.linkedin.com/in/diasgsputra/"} target="_blank" className="p-4 rounded-full bg-foreground/5 dark:bg-white/5 border border-foreground/10 dark:border-white/10 hover:bg-foreground/10 dark:hover:bg-white/10 hover:border-foreground/20 dark:hover:border-white/20 hover:scale-110 transition-all duration-300 group">
-                  <Linkedin className="h-6 w-6 text-foreground/70 dark:text-white/70 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
+                <Link
+                  href="https://www.linkedin.com/in/diasgsputra/"
+                  target="_blank"
+                  className="w-12 h-12 rounded-full flex items-center justify-center border border-foreground/[0.06] dark:border-white/[0.06] text-foreground/40 dark:text-white/40 hover:text-foreground dark:hover:text-white hover:border-foreground/20 dark:hover:border-white/20 hover:scale-110 transition-all duration-300"
+                >
+                  <Linkedin className="h-5 w-5" />
                   <span className="sr-only">LinkedIn</span>
+                </Link>
+                <Link
+                  href="mailto:diasgsputra@gmail.com"
+                  className="w-12 h-12 rounded-full flex items-center justify-center border border-foreground/[0.06] dark:border-white/[0.06] text-foreground/40 dark:text-white/40 hover:text-foreground dark:hover:text-white hover:border-foreground/20 dark:hover:border-white/20 hover:scale-110 transition-all duration-300"
+                >
+                  <Mail className="h-5 w-5" />
+                  <span className="sr-only">Email</span>
                 </Link>
               </div>
             </div>
-          </div>
-        </AnimatedSection>
+          </AnimatedSection>
+        </section>
       </main>
 
-      <footer className="border-t border-foreground/10 dark:border-white/10 py-10 relative bg-background">
-        <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
-          <div className="flex items-center gap-2">
-            <Terminal className="h-5 w-5 text-indigo-500" />
-            <span className="font-bold text-foreground/90 dark:text-white/90">{profile?.name || "Portfolio"}</span>
+      {/* Footer */}
+      <footer className="border-t border-foreground/[0.04] dark:border-white/[0.04] py-12 relative">
+        <div className="container mx-auto px-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            {/* Brand */}
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-xl border border-foreground/[0.08] dark:border-white/[0.08] flex items-center justify-center">
+                <span className="font-display text-xs font-bold text-foreground/50 dark:text-white/50">
+                  {profile?.name ? profile.name.charAt(0).toUpperCase() : "P"}
+                </span>
+              </div>
+              <span className="font-display text-sm font-medium text-foreground/50 dark:text-white/50">
+                {profile?.name || "Portfolio"}
+              </span>
+            </div>
+
+            {/* Copyright */}
+            <p className="text-xs text-foreground/30 dark:text-white/30 font-mono">
+              &copy; {new Date().getFullYear()} All rights reserved
+            </p>
+
+            {/* Right Side */}
+            <div className="flex items-center gap-4">
+              <Link
+                href="/admin/login"
+                className="text-[10px] font-mono text-foreground/20 dark:text-white/15 hover:text-foreground/50 dark:hover:text-white/40 transition-colors uppercase tracking-[0.15em]"
+              >
+                Admin
+              </Link>
+              <Link
+                href="#"
+                className="w-9 h-9 rounded-full border border-foreground/[0.06] dark:border-white/[0.06] flex items-center justify-center text-foreground/30 dark:text-white/30 hover:text-foreground/60 dark:hover:text-white/60 hover:border-foreground/10 dark:hover:border-white/10 transition-all duration-300"
+                aria-label="Back to top"
+              >
+                <ChevronUp className="h-4 w-4" />
+              </Link>
+            </div>
           </div>
-          <p className="text-sm text-foreground/50 dark:text-white/50">
-            © {new Date().getFullYear()} All rights reserved. Crafted with Next.js array of emotions.
-          </p>
-          <Link href="/admin/login" className="text-xs font-mono text-foreground/40 dark:text-white/30 hover:text-foreground/70 dark:hover:text-white/70 transition-colors uppercase tracking-wider">
-            Admin Portal
-          </Link>
         </div>
       </footer>
     </div>

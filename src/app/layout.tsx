@@ -1,13 +1,15 @@
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google"
 import "./globals.css"
 import { db } from "@/lib/db"
 import { ThemeProvider } from "@/components/theme-provider"
+import { CursorGlow } from "@/components/cursor-glow"
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-display" })
+const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" })
 
 export async function generateMetadata(): Promise<Metadata> {
-  // Fetch profile for dynamic metadata
   const profile = await db.profile.findFirst()
 
   const siteName = profile ? `${profile.name} - Portfolio` : "Developer Portfolio"
@@ -54,13 +56,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
-      <body className={`${inter.className} bg-background text-foreground antialiased selection:bg-primary/30 min-h-screen`}>
+      <body className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} font-sans bg-background text-foreground antialiased selection:bg-brand/20 selection:text-foreground min-h-screen noise-overlay`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
           enableSystem
           disableTransitionOnChange
         >
+          <CursorGlow />
           {children}
         </ThemeProvider>
       </body>
