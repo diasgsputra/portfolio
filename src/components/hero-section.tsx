@@ -1,6 +1,7 @@
 "use client"
 
-import { motion, useReducedMotion } from "framer-motion"
+import { useRef } from "react"
+import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion"
 import { ArrowRight } from "lucide-react"
 import Link from "next/link"
 
@@ -44,15 +45,48 @@ export function HeroSection({ name, title, avatarUrl, techs = [] }: HeroSectionP
   const firstName = name?.split(" ")[0] || "Developer"
   const lastName = name?.split(" ").slice(1).join(" ") || ""
 
-  return (
-    <section className="relative min-h-[100vh] flex items-center overflow-hidden">
-      {/* Background Elements */}
-      <div className="absolute inset-0 dot-pattern opacity-40 dark:opacity-30" />
-      <div className="absolute top-[20%] right-[10%] w-[500px] h-[500px] rounded-full bg-indigo-400/[0.12] dark:bg-brand/[0.06] blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[20%] left-[5%] w-[400px] h-[400px] rounded-full bg-purple-400/[0.10] dark:bg-purple-500/[0.05] blur-[100px] pointer-events-none" />
-      <div className="absolute top-[60%] right-[30%] w-[300px] h-[300px] rounded-full bg-blue-400/[0.08] dark:bg-transparent blur-[80px] pointer-events-none" />
+  const sectionRef = useRef<HTMLElement>(null)
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start start", "end start"],
+  })
 
-      <div className="container mx-auto px-6 py-32 md:py-0">
+  // Apple-style: content fades and scales down as you scroll past
+  const contentOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0])
+  const contentScale = useTransform(scrollYProgress, [0, 0.5], [1, 0.92])
+  const contentY = useTransform(scrollYProgress, [0, 0.5], [0, 60])
+
+  // Parallax for background orbs
+  const orbY1 = useTransform(scrollYProgress, [0, 1], [0, -120])
+  const orbY2 = useTransform(scrollYProgress, [0, 1], [0, -80])
+  const orbY3 = useTransform(scrollYProgress, [0, 1], [0, -50])
+
+  return (
+    <section ref={sectionRef} className="relative min-h-[100vh] flex items-center overflow-hidden">
+      {/* Background Elements with parallax */}
+      <div className="absolute inset-0 dot-pattern opacity-40 dark:opacity-30" />
+      <motion.div
+        style={{ y: shouldReduceMotion ? 0 : orbY1 }}
+        className="absolute top-[20%] right-[10%] w-[500px] h-[500px] rounded-full bg-indigo-400/[0.12] dark:bg-brand/[0.06] blur-[120px] pointer-events-none"
+      />
+      <motion.div
+        style={{ y: shouldReduceMotion ? 0 : orbY2 }}
+        className="absolute bottom-[20%] left-[5%] w-[400px] h-[400px] rounded-full bg-purple-400/[0.10] dark:bg-purple-500/[0.05] blur-[100px] pointer-events-none"
+      />
+      <motion.div
+        style={{ y: shouldReduceMotion ? 0 : orbY3 }}
+        className="absolute top-[60%] right-[30%] w-[300px] h-[300px] rounded-full bg-blue-400/[0.08] dark:bg-transparent blur-[80px] pointer-events-none"
+      />
+
+      {/* Content wrapper with scroll-based fade/scale */}
+      <motion.div
+        style={shouldReduceMotion ? {} : {
+          opacity: contentOpacity,
+          scale: contentScale,
+          y: contentY,
+        }}
+        className="container mx-auto px-6 py-32 md:py-0 will-change-transform"
+      >
         <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-12 lg:gap-20 items-center">
           {/* Left Column - Text */}
           <motion.div
@@ -78,7 +112,7 @@ export function HeroSection({ name, title, avatarUrl, techs = [] }: HeroSectionP
             <div className="mb-6">
               <motion.div className="overflow-hidden" variants={lineReveal}>
                 <h1 className="font-display text-[clamp(2.5rem,6vw,5.5rem)] font-extrabold tracking-[-0.04em] leading-[0.95] text-foreground/40 dark:text-white/40">
-                  Hello, I'm
+                  Hello, I&apos;m
                 </h1>
               </motion.div>
               <motion.div className="overflow-hidden mt-1" variants={lineReveal}>
@@ -174,7 +208,7 @@ export function HeroSection({ name, title, avatarUrl, techs = [] }: HeroSectionP
             })}
           </motion.div>
         </div>
-      </div>
+      </motion.div>
     </section>
   )
 }

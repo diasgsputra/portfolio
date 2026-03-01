@@ -1,6 +1,6 @@
 import { db } from "@/lib/db"
 import Link from "next/link"
-import { Github, Linkedin, Mail, ArrowRight, ArrowUpRight, Code2, Database, Palette, Server, ChevronUp } from "lucide-react"
+import { Github, Linkedin, Mail, ArrowUpRight, Code2, Database, Palette, Server, ChevronUp } from "lucide-react"
 import { AnimatedSection } from "@/components/animated-section"
 import { ProjectCarousel } from "@/components/project-carousel"
 import { SiteHeader } from "@/components/site-header"
@@ -8,6 +8,8 @@ import { HeroSection } from "@/components/hero-section"
 import { ExperienceTimeline } from "@/components/experience-timeline"
 import { ScrollProgress } from "@/components/scroll-progress"
 import { MagneticButton } from "@/components/magnetic-button"
+import { ScrollTextReveal } from "@/components/scroll-text-reveal"
+import { ScrollScaleSection } from "@/components/scroll-scale-section"
 
 export default async function Home() {
   const [profile, projects, allProjects, experiences] = await Promise.all([
@@ -75,6 +77,8 @@ export default async function Home() {
   // Top 5 techs for hero floating pills
   const topTechs = allTechs.slice(0, 5)
 
+  const bioText = profile?.bio || "I am passionate about building fullstack applications that solve real-world problems. With a keen eye for detail and a love for clean code, I create digital experiences that are both functional and delightful."
+
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       {/* Light mode ambient gradient background */}
@@ -98,14 +102,13 @@ export default async function Home() {
         />
 
         {/* About Section */}
-        <AnimatedSection
+        <section
           id="about"
           className="py-28 md:py-40 relative bg-gradient-to-b from-transparent via-indigo-50/50 to-transparent dark:via-transparent"
-          variant="blur-in"
         >
           <div className="container mx-auto px-6 max-w-6xl">
             {/* Section Header */}
-            <div className="mb-16 md:mb-20">
+            <AnimatedSection as="div" variant="blur-in" className="mb-16 md:mb-20">
               <span className="text-[11px] font-mono font-medium uppercase tracking-[0.2em] text-brand mb-4 block">
                 About Me
               </span>
@@ -115,47 +118,39 @@ export default async function Home() {
                   digital experiences
                 </span>
               </h2>
-            </div>
+            </AnimatedSection>
 
-            <div className="grid lg:grid-cols-[1.2fr_1fr] gap-16 items-start">
-              {/* Bio */}
-              <div>
-                <div className="text-lg text-foreground/55 dark:text-white/55 leading-relaxed space-y-4 mb-12">
-                  {profile?.bio?.split("\n").map((paragraph, index) => (
-                    <p key={index} className={index === 0 ? "text-xl text-foreground/70 dark:text-white/70" : ""}>
-                      {paragraph}
-                    </p>
-                  )) || (
-                    <p className="text-xl text-foreground/70 dark:text-white/70">
-                      I am passionate about building fullstack applications that solve
-                      real-world problems. With a keen eye for detail and a love for
-                      clean code, I create digital experiences that are both functional
-                      and delightful.
-                    </p>
-                  )}
-                </div>
+            <div className="grid lg:grid-cols-[1fr_1fr] gap-16 items-start">
+              {/* Bio — Apple-style scroll text reveal */}
+              <div className="flex flex-col">
+                <ScrollTextReveal
+                  text={bioText}
+                  className="text-base md:text-lg font-light leading-relaxed text-foreground/70 dark:text-white/70 mb-12 text-justify flex-1"
+                />
 
                 {/* Social Links */}
-                <div className="flex gap-3">
-                  {profile?.githubUrl && (
-                    <Link
-                      href={profile.githubUrl}
-                      target="_blank"
-                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full glass-card glass-card-hover text-sm font-medium text-foreground/60 dark:text-white/60 hover:text-foreground dark:hover:text-white"
-                    >
-                      <Github className="h-4 w-4" /> GitHub
-                    </Link>
-                  )}
-                  {profile?.linkedinUrl && (
-                    <Link
-                      href={profile.linkedinUrl}
-                      target="_blank"
-                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full glass-card glass-card-hover text-sm font-medium text-foreground/60 dark:text-white/60 hover:text-foreground dark:hover:text-white"
-                    >
-                      <Linkedin className="h-4 w-4" /> LinkedIn
-                    </Link>
-                  )}
-                </div>
+                <AnimatedSection as="div" variant="fade-up" delay={0.1}>
+                  <div className="flex gap-3">
+                    {profile?.githubUrl && (
+                      <Link
+                        href={profile.githubUrl}
+                        target="_blank"
+                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full glass-card glass-card-hover text-sm font-medium text-foreground/60 dark:text-white/60 hover:text-foreground dark:hover:text-white"
+                      >
+                        <Github className="h-4 w-4" /> GitHub
+                      </Link>
+                    )}
+                    {profile?.linkedinUrl && (
+                      <Link
+                        href={profile.linkedinUrl}
+                        target="_blank"
+                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full glass-card glass-card-hover text-sm font-medium text-foreground/60 dark:text-white/60 hover:text-foreground dark:hover:text-white"
+                      >
+                        <Linkedin className="h-4 w-4" /> LinkedIn
+                      </Link>
+                    )}
+                  </div>
+                </AnimatedSection>
               </div>
 
               {/* Terminal Code Block */}
@@ -183,7 +178,7 @@ export default async function Home() {
                       <span className="text-purple-500/70 dark:text-purple-400/70">name</span>
                       <span className="text-foreground/30 dark:text-white/30">:</span>{" "}
                       <span className="text-emerald-600/80 dark:text-emerald-400/70">
-                        "{profile?.name?.split(" ")[0] || "Dev"}"
+                        &quot;{profile?.name?.split(" ")[0] || "Dev"}&quot;
                       </span>
                       <span className="text-foreground/30 dark:text-white/30">,</span>
                       {"\n"}
@@ -191,7 +186,7 @@ export default async function Home() {
                       <span className="text-purple-500/70 dark:text-purple-400/70">passion</span>
                       <span className="text-foreground/30 dark:text-white/30">:</span>{" "}
                       <span className="text-emerald-600/80 dark:text-emerald-400/70">
-                        "Building Apps"
+                        &quot;Building Apps&quot;
                       </span>
                       <span className="text-foreground/30 dark:text-white/30">,</span>
                       {"\n"}
@@ -200,25 +195,14 @@ export default async function Home() {
                       <span className="text-foreground/30 dark:text-white/30">:</span>{" "}
                       <span className="text-foreground/40 dark:text-white/40">[</span>
                       {"\n"}
-                      {"    "}
-                      <span className="text-emerald-600/80 dark:text-emerald-400/70">"TypeScript"</span>
-                      <span className="text-foreground/30 dark:text-white/30">,</span>
-                      {"\n"}
-                      {"    "}
-                      <span className="text-emerald-600/80 dark:text-emerald-400/70">"React / Next.js"</span>
-                      <span className="text-foreground/30 dark:text-white/30">,</span>
-                      {"\n"}
-                      {"    "}
-                      <span className="text-emerald-600/80 dark:text-emerald-400/70">"Tailwind CSS"</span>
-                      <span className="text-foreground/30 dark:text-white/30">,</span>
-                      {"\n"}
-                      {"    "}
-                      <span className="text-emerald-600/80 dark:text-emerald-400/70">"Node.js"</span>
-                      <span className="text-foreground/30 dark:text-white/30">,</span>
-                      {"\n"}
-                      {"    "}
-                      <span className="text-emerald-600/80 dark:text-emerald-400/70">"PostgreSQL"</span>
-                      {"\n"}
+                      {allTechs.slice(0, 5).map((tech, i) => (
+                        <span key={tech}>
+                          {"    "}
+                          <span className="text-emerald-600/80 dark:text-emerald-400/70">&quot;{tech}&quot;</span>
+                          {i < Math.min(allTechs.length, 5) - 1 && <span className="text-foreground/30 dark:text-white/30">,</span>}
+                          {"\n"}
+                        </span>
+                      ))}
                       {"  "}
                       <span className="text-foreground/40 dark:text-white/40">]</span>
                       <span className="text-foreground/30 dark:text-white/30">,</span>
@@ -227,7 +211,7 @@ export default async function Home() {
                       <span className="text-purple-500/70 dark:text-purple-400/70">status</span>
                       <span className="text-foreground/30 dark:text-white/30">:</span>{" "}
                       <span className="text-emerald-600/80 dark:text-emerald-400/70">
-                        "Turning ideas into code"
+                        &quot;Turning ideas into code&quot;
                       </span>
                       {"\n"}
                       <span className="text-foreground/40 dark:text-white/40">{"}"}</span>
@@ -244,8 +228,8 @@ export default async function Home() {
                 <AnimatedSection
                   key={skill.title}
                   as="div"
-                  variant="fade-up"
-                  delay={0.1 + i * 0.08}
+                  variant="scale-in"
+                  delay={0.05 + i * 0.08}
                 >
                   <div className="group glass-card glass-card-hover rounded-2xl p-6 h-full">
                     <div className="w-10 h-10 rounded-xl bg-brand/[0.08] flex items-center justify-center mb-4 group-hover:bg-brand/[0.14] transition-colors duration-500">
@@ -272,16 +256,15 @@ export default async function Home() {
               ))}
             </div>
           </div>
-        </AnimatedSection>
+        </section>
 
-        {/* Featured Projects */}
-        <AnimatedSection
+        {/* Featured Projects — Apple-style scale-in from scroll */}
+        <ScrollScaleSection
           id="projects"
           className="py-28 md:py-40 relative bg-gradient-to-b from-purple-50/40 via-surface/60 to-indigo-50/30 dark:from-transparent dark:via-surface/30 dark:to-transparent"
-          variant="blur-in"
         >
           <div className="container mx-auto px-6 max-w-6xl">
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-16 md:mb-20">
+            <AnimatedSection as="div" variant="blur-in" className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-16 md:mb-20">
               <div>
                 <span className="text-[11px] font-mono font-medium uppercase tracking-[0.2em] text-brand mb-4 block">
                   Portfolio
@@ -293,7 +276,7 @@ export default async function Home() {
                   A curated selection of my recent work.
                 </p>
               </div>
-            </div>
+            </AnimatedSection>
 
             {projects.length > 0 ? (
               <div className="relative px-0 sm:px-4 md:px-0">
@@ -306,30 +289,29 @@ export default async function Home() {
               </div>
             )}
           </div>
-        </AnimatedSection>
+        </ScrollScaleSection>
 
         {/* Experience Section */}
-        <AnimatedSection
+        <section
           id="experience"
           className="py-28 md:py-40 relative"
-          variant="fade-up"
         >
           <div className="container mx-auto px-6 max-w-4xl">
-            <div className="mb-16 md:mb-20">
+            <AnimatedSection as="div" variant="blur-in" className="mb-16 md:mb-20">
               <span className="text-[11px] font-mono font-medium uppercase tracking-[0.2em] text-brand mb-4 block">
                 Career
               </span>
               <h2 className="font-display text-4xl md:text-6xl font-bold tracking-[-0.03em] text-foreground dark:text-white">
                 Experience
               </h2>
-            </div>
+            </AnimatedSection>
 
             <ExperienceTimeline experiences={experiences} />
           </div>
-        </AnimatedSection>
+        </section>
 
         {/* Contact Section */}
-        <section
+        <ScrollScaleSection
           id="contact"
           className="py-28 md:py-40 relative overflow-hidden bg-gradient-to-b from-transparent via-indigo-50/30 to-purple-50/20 dark:via-transparent dark:to-transparent"
         >
@@ -338,19 +320,19 @@ export default async function Home() {
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-brand/[0.08] dark:bg-brand/[0.04] blur-[150px]" />
           </div>
 
-          <AnimatedSection as="div" variant="scale-in" className="container mx-auto px-6 max-w-4xl relative z-10 text-center">
+          <AnimatedSection as="div" variant="blur-in" className="container mx-auto px-6 max-w-4xl relative z-10 text-center">
             <div className="mb-10">
               <span className="text-[11px] font-mono font-medium uppercase tracking-[0.2em] text-brand mb-6 block">
                 Contact
               </span>
               <h2 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold tracking-[-0.04em] text-foreground dark:text-white mb-6">
-                Let's work{" "}
+                Let&apos;s work{" "}
                 <span className="text-gradient bg-gradient-to-r from-brand via-purple-500 to-blue-500 animate-gradient-shift">
                   together
                 </span>
               </h2>
               <p className="text-lg md:text-xl text-foreground/45 dark:text-white/45 max-w-xl mx-auto font-light">
-                I'm always open to discussing new projects, creative ideas, or
+                I&apos;m always open to discussing new projects, creative ideas, or
                 opportunities to be part of your visions.
               </p>
             </div>
@@ -392,7 +374,7 @@ export default async function Home() {
               </div>
             </div>
           </AnimatedSection>
-        </section>
+        </ScrollScaleSection>
       </main>
 
       {/* Footer */}
